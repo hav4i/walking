@@ -1,9 +1,18 @@
 import { createServer } from 'node:http';
 import { parse } from 'node:url';
+import { createReadStream, existsSync } from 'node:fs';
+import { extname, join, normalize } from 'node:path';
 
 const PORT = process.env.PORT || 3001;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
+const DIST_DIR = join(process.cwd(), 'dist');
+const MIME_TYPES = {
+  '.css': 'text/css; charset=utf-8',
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'application/javascript; charset=utf-8',
+  '.svg': 'image/svg+xml',
+};
 
 const server = createServer(async (req, res) => {
   // CORS headers
@@ -106,8 +115,24 @@ const server = createServer(async (req, res) => {
     return;
   }
 
-  res.writeHead(404);
-  res.end('Not found');
+  // Serve the built Vite application in production. API routes above remain
+  // available on the same origin, so the browser never needs localhost.
+  const requestedPath = pathname === '/' ? '/index.html' : pathname;
+  const filePath = normalize(join(DIST_DIR, requestedPath));
+  if (!filePath.startsWith(`${DIST_DIR}/`) || !existsSync(filePath)) {
+    const indexPath = join(DIST_DIR, 'index.html');
+    if (!existsSync(indexPath)) {
+      res.writeHead(404);
+      res.end('Build not found. Run npm run build.');
+      return;
+    }
+    res.writeHead(200, { 'Content-Type': MIME_TYPES['.html'] });
+    createReadStream(indexPath).pipe(res);
+    return;
+  }
+
+  res.writeHead(200, { 'Content-Type': MIME_TYPES[extname(filePath)] || 'application/octet-stream' });
+  createReadStream(filePath).pipe(res);
 });
 
 function formatTelegramMessage(data) {

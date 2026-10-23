@@ -252,7 +252,7 @@ export default function App() {
 
   // --- Отправка событий в Telegram (реальное время) ---
   const sendGameEvent = useCallback((eventType: string, round: string, reason: string, prevHealth: number, newHealth: number) => {
-    fetch('http://localhost:3001/api/send-event', {
+    fetch('/api/send-event', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -384,7 +384,7 @@ export default function App() {
       return `${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`
     }
     
-    fetch('http://localhost:3001/api/send-telegram', {
+    fetch('/api/send-telegram', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
