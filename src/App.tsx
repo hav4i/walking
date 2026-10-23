@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 
 // ============================================
 // GAME CONFIG
@@ -266,6 +266,12 @@ export default function App() {
     }).catch(() => {})
   }, [])
 
+  // One notification per page load. The event contains no identity data, only
+  // that the invitation page was opened.
+  useEffect(() => {
+    sendGameEvent('page_opened', 'Старт', 'Ссылка открыта', MAX_HEALTH, MAX_HEALTH)
+  }, [sendGameEvent])
+
   // --- NO button state ---
   const [noTransformed, setNoTransformed] = useState(false)
   const [noText, setNoText] = useState('Спасибо, но нет')
@@ -513,8 +519,9 @@ export default function App() {
   // YES BUTTON
   // ========================================
   const handleYes = useCallback(() => {
+    sendGameEvent('first_action', '1', 'Нажата кнопка «Да, погнали!»', player2Health, player2Health)
     setPhase('round2')
-  }, [])
+  }, [player2Health, sendGameEvent])
 
   // ========================================
   // LOCATION SELECT

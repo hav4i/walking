@@ -197,7 +197,17 @@ function formatEventMessage(data) {
   const eventType = data.eventType;
   const lines = [];
 
-  if (eventType === 'heart_loss') {
+  if (eventType === 'page_opened') {
+    lines.push('👀 <b>Ссылка открыта</b>');
+    lines.push('━━━━━━━━━━━━━━━━━━━━');
+    lines.push('<b>Действие:</b> Открыта страница приглашения');
+    lines.push(`<b>Время:</b> ${now}`);
+  } else if (eventType === 'first_action') {
+    lines.push('✅ <b>Первое действие</b>');
+    lines.push('━━━━━━━━━━━━━━━━━━━━');
+    lines.push(`<b>Действие:</b> ${data.reason || 'Нажата стартовая кнопка'}`);
+    lines.push(`<b>Время:</b> ${now}`);
+  } else if (eventType === 'heart_loss') {
     lines.push('💔 <b>Потеря сердечка!</b>');
     lines.push('━━━━━━━━━━━━━━━━━━━━');
     lines.push(`<b>Раунд:</b> ${data.round || '?'}`);
