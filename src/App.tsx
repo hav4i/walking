@@ -250,6 +250,22 @@ export default function App() {
   const [player2Health, setPlayer2Health] = useState(MAX_HEALTH)
   const [phase, setPhase] = useState<Phase>('round1')
 
+  // --- Отправка событий в Telegram (реальное время) ---
+  const sendGameEvent = useCallback((eventType: string, round: string, reason: string, prevHealth: number, newHealth: number) => {
+    fetch('http://localhost:3001/api/send-event', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        eventType,
+        round,
+        reason,
+        prevHealth,
+        newHealth,
+        maxHealth: MAX_HEALTH
+      })
+    }).catch(() => {})
+  }, [])
+
   // --- NO button state ---
   const [noTransformed, setNoTransformed] = useState(false)
   const [noText, setNoText] = useState('Спасибо, но нет')
@@ -303,20 +319,26 @@ export default function App() {
       } else {
         newSet.add(id)
         if (penalty) {
+          const prevHealth = player2Health
           const newHealth = Math.max(0, player2Health - 1)
           setPlayer2Health(newHealth)
           setBreaking(true)
           setShowHit(true)
+          // Отправляем уведомление о потере сердечка
+          sendGameEvent('heart_loss', '4 - Напитки', `Выбрала "${id === 'drink_idk' ? 'Я не знаю' : 'Ничего не хочу'}" в напитках`, prevHealth, newHealth)
           setTimeout(() => {
             setShowHit(false)
             setBreaking(false)
-            if (newHealth === 0) setPhase('game_over')
+            if (newHealth === 0) {
+              sendGameEvent('game_over', '4 - Напитки', 'Потеря всех сердечек в напитках', prevHealth, newHealth)
+              setPhase('game_over')
+            }
           }, 200)
         }
       }
       return newSet
     })
-  }, [player2Health])
+  }, [player2Health, sendGameEvent])
 
   const handleWalkClick = useCallback((id: string) => {
     setSelectedWalk(prev => {
@@ -377,7 +399,7 @@ export default function App() {
     }).catch(() => {})
 
     setPhase('round5')
-  }, [selectedLocation, selectedDate, selectedTime])
+  }, [selectedLocation, selectedDate, selectedTime, selectedDrinks, selectedWalk, selectedInventory, selectedActivity])
 
   // Refs
   const noBtnRef = useRef<HTMLButtonElement>(null)
@@ -467,21 +489,25 @@ export default function App() {
     e.preventDefault()
     if (!noTransformed) return
 
+    const prevHealth = player2Health
     const newHealth = Math.max(0, player2Health - 1)
     setPlayer2Health(newHealth)
     setBreaking(true)
     setShowHit(true)
+    // Отправляем уведомление о потере сердечка
+    sendGameEvent('heart_loss', '1', 'Нажала на "Спасибо, но нет" после превращения', prevHealth, newHealth)
 
     setTimeout(() => {
       setShowHit(false)
       setBreaking(false)
       if (newHealth === 0) {
+        sendGameEvent('game_over', '1', 'Потеря всех сердечек в раунде 1', prevHealth, newHealth)
         setPhase('game_over')
       } else {
         setPhase('round2')
       }
     }, 200)
-  }, [noTransformed, player2Health])
+  }, [noTransformed, player2Health, sendGameEvent])
 
   // ========================================
   // YES BUTTON
@@ -495,28 +521,40 @@ export default function App() {
   // ========================================
   const handleLocation = useCallback((id: string, displayText: string) => {
     if (id === 'idk') {
+      const prevHealth = player2Health
       const newHealth = Math.max(0, player2Health - 1)
       setPlayer2Health(newHealth)
       setBreaking(true)
       setShowHit(true)
+      // Отправляем уведомление о потере сердечка
+      sendGameEvent('heart_loss', '2 - Место', 'Выбрала "Не знаю" как место встречи', prevHealth, newHealth)
       setTimeout(() => {
         setShowHit(false)
         setBreaking(false)
-        if (newHealth === 0) setPhase('game_over')
+        if (newHealth === 0) {
+          sendGameEvent('game_over', '2 - Место', 'Потеря всех сердечек из-за "Не знаю"', prevHealth, newHealth)
+          setPhase('game_over')
+        }
       }, 200)
       return
     }
     if (id === 'quit') {
+      const prevHealth = player2Health
       setPlayer2Health(0)
       setBreaking(true)
       setShowHit(true)
-      setTimeout(() => setPhase('game_over'), 300)
+      // Отправляем уведомление об отказе
+      sendGameEvent('quit', '2 - Место', 'Выбрала "Я не хочу..." — отказ от участия', prevHealth, 0)
+      setTimeout(() => {
+        sendGameEvent('game_over', '2 - Место', 'Игра завершена из-за отказа', prevHealth, 0)
+        setPhase('game_over')
+      }, 300)
       return
     }
     if (id === 'custom') { setShowCustom(true); return }
     setSelectedLocation(displayText)
     setTimeout(() => setPhase('round3'), 300)
-  }, [player2Health])
+  }, [player2Health, sendGameEvent])
 
   // ========================================
   // RESTART
